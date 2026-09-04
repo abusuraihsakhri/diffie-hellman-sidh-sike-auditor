@@ -1,4 +1,5 @@
 import sys
+import os
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -42,3 +43,42 @@ def test_coordinator():
 def test_cli():
     assert main(["audit", "--task-id", "CLI-01"]) == 0
     assert main(["chat", "What", "is", "the", "system", "status?"]) == 0
+
+
+def test_frontier_payload_validation():
+    """FrontierPayload should reject invalid values."""
+    import math
+
+    # Reject NaN
+    with pytest.raises(ValueError, match="finite"):
+        FrontierPayload("T1", "KEY-01", primary_metric=float("nan"), secondary_metric=4.0, status_descriptor="NOMINAL")
+
+    # Reject Inf
+    with pytest.raises(ValueError, match="finite"):
+        FrontierPayload("T1", "KEY-01", primary_metric=10.0, secondary_metric=float("inf"), status_descriptor="NOMINAL")
+
+    # Reject empty task_id
+    with pytest.raises(ValueError, match="empty"):
+        FrontierPayload("", "KEY-01", primary_metric=10.0, secondary_metric=4.0, status_descriptor="NOMINAL")
+
+    # Reject whitespace-only target_identifier
+    with pytest.raises(ValueError, match="empty"):
+        FrontierPayload("T1", "   ", primary_metric=10.0, secondary_metric=4.0, status_descriptor="NOMINAL")
+
+
+def test_batch_processing_with_missing_file():
+    """Batch command should handle missing input file gracefully."""
+    result = main(["batch", "-i", "nonexistent_file_12345.csv"])
+    assert result == 1
+
+
+def test_batch_processing_with_sample_csv():
+    """Batch command should process sample CSV successfully."""
+    result = main(["batch", "-i", "sample.csv", "-o", "test_output_iso.csv"])
+    assert result == 0
+
+    # Verify output file was created
+    assert os.path.isfile("test_output_iso.csv")
+
+    # Clean up
+    os.remove("test_output_iso.csv")

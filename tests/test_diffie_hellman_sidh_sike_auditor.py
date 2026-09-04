@@ -4,11 +4,12 @@ Domain: Clinical & Biomedical AI
 Standard: CAP / CLSI / ISO Standards
 """
 import sys
+import math
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import pytest
-from agents.base import PHIGuard, AuditLogger, SecurityException
+from agents.base import PHIGuard, AuditLogger, SecurityException, AuditTrail
 from agents.models import SystemTaskPayload, UrgencyLevel, SystemIntegrityStatus
 from agents.workers import InvariantQCWorker, SafetyEscalationWorker, ProtocolConformanceWorker
 from agents.supervisor import SystemSupervisor
@@ -63,3 +64,58 @@ def test_supervisor_consensus_and_audit():
     assert main(["audit", "--task-id", "CLI-TEST-01"]) == 0
     assert main(["chat", "Explain", "specifications"]) == 0
     assert main(["verify-audit"]) == 0
+
+
+def test_input_validation_rejects_nan():
+    """Metric values must be finite - reject NaN."""
+    with pytest.raises(ValueError, match="finite"):
+        SystemTaskPayload(task_id="T1", target_identifier="KEY-01", primary_metric=float("nan"))
+
+
+def test_input_validation_rejects_inf():
+    """Metric values must be finite - reject Inf."""
+    with pytest.raises(ValueError, match="finite"):
+        SystemTaskPayload(task_id="T1", target_identifier="KEY-01", secondary_metric=float("inf"))
+
+
+def test_input_validation_rejects_empty_strings():
+    """String fields must be non-empty after stripping."""
+    with pytest.raises(ValueError, match="empty"):
+        SystemTaskPayload(task_id="   ", target_identifier="KEY-01", primary_metric=10.0)
+
+    with pytest.raises(ValueError, match="empty"):
+        SystemTaskPayload(task_id="T1", target_identifier="", primary_metric=10.0)
+
+
+def test_audit_trail_integrity_verification():
+    """Audit trail should detect tampering."""
+    trail = AuditTrail(secret_key="test-key-for-integrity-verification")
+    trail.log("test-actor", "test-tier", "TEST_EVENT", {"data": "value1"})
+
+    # Fresh trail should verify
+    assert trail.verify_integrity() is True
+
+    # Tamper with an entry
+    trail.logs[0]["payload_hash"] = "tampered_hash"
+
+    # Tampered trail should fail verification
+    assert trail.verify_integrity() is False
+
+
+def test_batch_processing_with_missing_file():
+    """Batch command should handle missing input file gracefully."""
+    result = main(["batch", "-i", "nonexistent_file_12345.csv"])
+    assert result == 1
+
+
+def test_batch_processing_with_sample_csv():
+    """Batch command should process sample CSV successfully."""
+    result = main(["batch", "-i", "sample.csv", "-o", "test_output.csv"])
+    assert result == 0
+
+    # Verify output file was created
+    import os
+    assert os.path.isfile("test_output.csv")
+
+    # Clean up
+    os.remove("test_output.csv")
