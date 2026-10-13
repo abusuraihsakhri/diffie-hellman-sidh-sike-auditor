@@ -1,5 +1,7 @@
 # Diffie Hellman SIDH/SIKE Auditor
 
+### [Open the Live Application →](https://abusuraihsakhri.github.io/diffie-hellman-sidh-sike-auditor/)
+
 > **Security limitation:** SIDH and SIKE are insecure following the 2022 key-recovery attacks. This repository does **not** implement isogeny computations, the Castryck–Decru attack, key recovery, SQISign validation, or cryptographic security certification. A nominal threshold result must never be interpreted as a secure cryptosystem.
 >
 > Reference: [SIKE team's security notice hosted by NIST](https://csrc.nist.gov/csrc/media/Projects/post-quantum-cryptography/documents/round-4/submissions/sike-team-note-insecure.pdf).
@@ -24,7 +26,7 @@ python -m http.server 8080 --directory web
 
 Enter a task ID, target label, both numeric metrics, descriptor, and optional critical flag. Select **Evaluate thresholds** to see the JSON result. All evaluation stays in the browser tab; no information is uploaded or persisted by the page. Use only non-sensitive, synthetic identifiers.
 
-A GitHub Pages deployment workflow is included. A public URL will be added here only after successful live deployment is verified.
+The GitHub Pages workflow deploys the browser-only application and verifies the published HTML and JavaScript over HTTPS.
 
 ## Python setup
 
