@@ -32,3 +32,12 @@ jobs:
           path: web
       - id: deployment
         uses: actions/deploy-pages@v4
+      - name: Verify published HTML and JavaScript over HTTPS
+        env:
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+        run: |
+          test -n "$PAGE_URL"
+          curl --fail --location --silent --show-error --retry 8 --retry-delay 5 --retry-all-errors "$PAGE_URL" -o /tmp/auditor-live.html
+          curl --fail --location --silent --show-error --retry 8 --retry-delay 5 --retry-all-errors "${PAGE_URL%/}/audit.js" -o /tmp/auditor-live.js
+          grep -Fq 'id="audit-form"' /tmp/auditor-live.html
+          grep -Fq 'function evaluateAudit' /tmp/auditor-live.js
