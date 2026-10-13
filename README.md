@@ -1,163 +1,84 @@
-# Diffie Hellman SIDH SIKE Auditor
+# Diffie Hellman SIDH/SIKE Auditor
 
-> **Domain:** Post-Quantum Cryptography & Isogeny-Based Cryptanalysis
-> **Standard:** Supersingular Isogeny Cryptography
+> **Security limitation:** SIDH and SIKE are insecure following the 2022 key-recovery attacks. This repository does **not** implement isogeny computations, the Castryck–Decru attack, key recovery, SQISign validation, or cryptographic security certification. A nominal threshold result must never be interpreted as a secure cryptosystem.
+>
+> Reference: [SIKE team's security notice hosted by NIST](https://csrc.nist.gov/csrc/media/Projects/post-quantum-cryptography/documents/round-4/submissions/sike-team-note-insecure.pdf).
 
-<div align="center">
+## Overview
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-3776AB.svg?logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.111-009688.svg?logo=fastapi&logoColor=white)
-![Audit Trail](https://img.shields.io/badge/Audit-HMAC--SHA256_Tamper--Evident-brightgreen.svg)
-![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker&logoColor=white)
+This project contains two **illustrative numerical rule evaluators** with separate Python CLIs, a FastAPI interface, CSV processing, in-memory audit bookkeeping, and an offline browser demonstration. It is suitable for inspecting the project's example classification rules, not for security-critical decision-making.
 
-</div>
+- **Primary `agents/` implementation:** three workers classify inputs using `primary_metric > 25`, `secondary_metric > 12` (or an explicit critical flag), and keywords in `status_descriptor`.
+- **Alternate `isogeny_auditor/` implementation:** separate three-agent evaluator; the secondary threshold is **10**, not 12. It has its own CLI and API factory.
+- **Browser demonstration (`web/`):** JavaScript mirrors the primary `agents/` thresholds. No backend, signing key, external service, or Python runtime is necessary.
+- **Audit log:** the primary API maintains an HMAC-SHA256 chain **in process memory only**. It is neither a persistent ledger nor an independent security attestation. The browser does not create signatures.
 
----
+## Use in the browser
 
-## What It Does
-
-**Diffie Hellman SIDH SIKE Auditor** is an analytical platform implementing isogeny cryptanalysis, Castryck-Decru torsion attack auditing, and SQISign validation. It provides a multi-agent evaluation framework for assessing cryptographic parameters against defined security thresholds.
-
----
-
-## Key Capabilities
-
-- **Multi-Agent Evaluation**: Specialized workers assess parameters against primary, secondary, and conformance boundaries
-- **PHI Outbound Guard**: Active pattern detection blocking sensitive identifiers (SSNs, MRNs, phone numbers)
-- **HMAC-SHA256 Audit Trail**: Cryptographically chained, tamper-evident logging with full signature verification
-- **FastAPI REST API**: OpenAPI-compatible endpoints for programmatic access
-- **Batch Processing**: CSV-based bulk evaluation with error handling
-
----
-
-## Installation
+Open `web/index.html` or run:
 
 ```bash
-# Clone the repository
+python -m http.server 8080 --directory web
+# Open http://localhost:8080/
+```
+
+Enter a task ID, target label, both numeric metrics, descriptor, and optional critical flag. Select **Evaluate thresholds** to see the JSON result. All evaluation stays in the browser tab; no information is uploaded or persisted by the page. Use only non-sensitive, synthetic identifiers.
+
+A GitHub Pages deployment workflow is included. A public URL will be added here only after successful live deployment is verified.
+
+## Python setup
+
+Requires Python 3.9 or later. The CI suite checks Python 3.10, 3.11, and 3.12.
+
+```bash
 git clone https://github.com/abusuraihsakhri/diffie-hellman-sidh-sike-auditor.git
 cd diffie-hellman-sidh-sike-auditor
-
-# Install dependencies
-pip install fastapi uvicorn pydantic pytest
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -e '.[api,test]'
 ```
 
----
+Primary command-line interface:
 
-## CLI Usage
-
-### 1. Single Task Evaluation
 ```bash
-python cli.py audit --task-id TASK-001 --target KEY-01 --primary 28.5 --secondary 14.2 --critical --status DISCORDANT
-```
-
-### 2. Batch CSV Processing
-```bash
-python cli.py batch -i sample.csv -o results.csv
-```
-
-### 3. Supervisory Chat
-```bash
-python cli.py chat "What is the system status?"
-```
-
-### 4. Verify Audit Trail Integrity
-```bash
+python cli.py audit --task-id DEMO-001 --target KEY-01 --primary 29.4 --secondary 14.8 --critical --status DISCORDANT
+python cli.py batch --input sample.csv --output results.csv
+python cli.py chat "What is the status?"
 python cli.py verify-audit
-```
-
-### 5. Launch REST API Server
-```bash
 python cli.py serve --host 127.0.0.1 --port 8000
 ```
 
----
+The `verify-audit` command inspects only the current process's in-memory log; launching it separately may verify an **empty log**. For the alternate implementation run `python -m isogeny_auditor.cli audit` or the installed `diffie-hellman-sidh-sike-auditor audit` command.
 
-## REST API Endpoints
+## API and containers
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/health` | Service health check |
-| GET | `/metrics` | Operational metrics |
-| POST | `/api/audit` | Submit task for evaluation |
-| POST | `/api/chat` | Query supervisory intelligence |
-| GET | `/api/audit/logs` | Retrieve audit trail with integrity status |
+The root CLI serves `agents.api:app` with `GET /health`, `GET /metrics`, `POST /api/audit`, `POST /api/chat`, and `GET /api/audit/logs`. Visit `http://127.0.0.1:8000/docs` for its generated OpenAPI documentation.
 
----
+The API is **not authenticated** and must not be exposed directly to an untrusted network. The built-in identifier guard is a limited regex heuristic, **not** validated PHI de-identification or regulatory compliance. Avoid real patient data and production secrets.
 
-## Input Data Schema
-
-| Field | Type | Description | Requirement |
-|:------|:-----|:------------|:------------|
-| `task_id` | str | Unique task identifier | Required |
-| `target_identifier` | str | Target entity or key | Required |
-| `primary_metric` | float | Primary measurement value | Required |
-| `secondary_metric` | float | Secondary measurement value | Optional (default: 0.0) |
-| `is_critical_flag` | bool | Emergency escalation flag | Optional (default: false) |
-| `status_descriptor` | str | Status code or descriptor | Optional (default: "NOMINAL") |
-
-**Validation Rules:**
-- Metric values must be finite (no NaN or Inf)
-- String fields must be non-empty after stripping whitespace
-
----
-
-## Security Features
-
-### Audit Trail Integrity
-The HMAC-SHA256 audit trail provides cryptographic verification:
-- Each entry includes a chained hash linking to the previous entry
-- HMAC signatures are verified using constant-time comparison
-- Tampering detection validates both chain linkage and signature validity
-
-### Configuration
-Set the `AUDIT_SECRET_KEY` environment variable for persistent audit trail signing:
-```bash
-export AUDIT_SECRET_KEY="your-secure-random-key"
-```
-
----
-
-## Testing
+For a localhost-only Docker Compose run, first set a **new** secret. Do not reuse the formerly committed example key.
 
 ```bash
-# Run full test suite
-pytest -v
-
-# Run with coverage
-pytest -v --cov=agents --cov=isogeny_auditor
+cp .env.example .env
+python -c "import secrets; print(secrets.token_urlsafe(32))"
+# Paste the generated value after AUDIT_SECRET_KEY= in .env
+docker compose --env-file .env up --build
 ```
 
----
+The container uses port `127.0.0.1:8000` by default. `.env` is ignored by Git. Docker and the Python server require a runtime; **GitHub Pages hosts only the static browser demonstration**, not these APIs.
 
-## Container Deployment
+## Tests
 
 ```bash
-docker build -t diffie-hellman-sidh-sike-auditor .
-docker run -p 8000:8000 -e AUDIT_SECRET_KEY="your-key" diffie-hellman-sidh-sike-auditor
+python -m pytest -v
+python -m compileall -q agents isogeny_auditor cli.py enrichment.py simulator.py
+python -m pip check
+node --check web/audit.js
+node --test web/audit.test.cjs
 ```
 
----
+The project uses Python, Pydantic v2, optional FastAPI/Uvicorn, standard HTML/CSS/JavaScript, and GitHub Actions. The browser page targets current desktop and mobile browsers with modern JavaScript support. No service-side analytics are implemented in the page.
 
-## Project Structure
+## License
 
-```
-diffie-hellman-sidh-sike-auditor/
-├── agents/                    # Core agent framework
-│   ├── base.py               # Security, PHI guard, audit trail
-│   ├── models.py             # Pydantic data models with validation
-│   ├── supervisor.py         # Multi-agent orchestration
-│   ├── workers.py            # Specialized evaluation workers
-│   ├── api.py                # FastAPI REST endpoints
-│   └── ...
-├── isogeny_auditor/          # Isogeny cryptanalysis module
-│   ├── models.py             # Frontier payload definitions
-│   ├── engine.py             # Core evaluation engine
-│   ├── agents.py             # Specialized sub-agents
-│   ├── cli.py                # CLI interface
-│   └── server.py             # FastAPI server factory
-├── tests/                    # Test suite
-├── cli.py                    # Main CLI entry point
-├── pyproject.toml            # Project configuration
-└── Dockerfile                # Container definition
-```
+[MIT](LICENSE).

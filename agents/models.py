@@ -24,7 +24,7 @@ class SystemIntegrityStatus(str, Enum):
 
 class SystemTaskPayload(BaseModel):
     task_id: str = Field(..., description="Unique task / case identifier")
-    target_identifier: str = Field(..., description="Entity, patient key, or genomic/cryptographic target")
+    target_identifier: str = Field(..., description="Demonstration target label")
     primary_metric: float = Field(..., description="Primary domain measurement or score")
     secondary_metric: float = Field(default=0.0, description="Secondary kinetic or confidence score")
     status_descriptor: str = Field(default="NOMINAL", description="Status code or phenotype descriptor")
@@ -56,7 +56,7 @@ class AgentAlert(BaseModel):
     summary: str
     technical_details: str
     actionable_remediation: str
-    standard_reference: str = "CAP / CLSI / ISO Standards"
+    standard_reference: str = "Non-standard project thresholds"
     timestamp: str = Field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat())
 
     def to_dict(self) -> Dict[str, Any]:
@@ -66,7 +66,7 @@ class AgentAlert(BaseModel):
 class ConsensusDossier(BaseModel):
     dossier_id: str
     system_slug: str = "diffie-hellman-sidh-sike-auditor"
-    domain: str = "Clinical & Biomedical AI"
+    domain: str = "Educational threshold demonstration"
     task_id: str
     target_identifier: str
     overall_urgency: UrgencyLevel
@@ -75,6 +75,8 @@ class ConsensusDossier(BaseModel):
     critical_alerts_count: int
     alerts: List[AgentAlert]
     standard_reference: str = "CAP / CLSI / ISO Standards"
+    cryptographic_assurance: str = "NOT_ASSESSED"
+    security_notice: str = "SIDH/SIKE are insecure; these numeric checks cannot verify cryptographic security."
     consensus_summary: str
     audit_hash: str
     timestamp: str = Field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat())
