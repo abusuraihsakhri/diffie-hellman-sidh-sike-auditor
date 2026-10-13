@@ -8,6 +8,7 @@ import json
 import time
 import hmac
 import hashlib
+from copy import deepcopy
 import secrets
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timezone
@@ -97,20 +98,25 @@ class AuditTrail:
         Checks both chain linkage (prev_hash) and HMAC signature validity
         for each entry, ensuring no tampering has occurred.
         """
-        for i, entry in enumerate(self.logs):
-            # Verify chain linkage
-            prev = self.logs[i-1]["current_hash"] if i > 0 else "GENESIS_BLOCK_0000000000000000"
-            if entry["prev_hash"] != prev:
-                return False
-            # Verify HMAC signature
-            sign_string = f"{entry['audit_id']}|{entry['timestamp']}|{entry['actor']}|{entry['actor_tier']}|{entry['event_type']}|{entry['payload_hash']}|{entry['prev_hash']}"
-            expected_sig = hmac.new(self.secret_key, sign_string.encode("utf-8"), hashlib.sha256).hexdigest()
-            if not hmac.compare_digest(entry["current_hash"], expected_sig):
-                return False
+        try:
+            for i, entry in enumerate(self.logs):
+                prev = self.logs[i - 1]["current_hash"] if i else "GENESIS_BLOCK_0000000000000000"
+                if entry["prev_hash"] != prev:
+                    return False
+                sign_string = (
+                    f"{entry['audit_id']}|{entry['timestamp']}|{entry['actor']}|"
+                    f"{entry['actor_tier']}|{entry['event_type']}|"
+                    f"{entry['payload_hash']}|{entry['prev_hash']}"
+                )
+                expected_sig = hmac.new(self.secret_key, sign_string.encode("utf-8"), hashlib.sha256).hexdigest()
+                if not hmac.compare_digest(entry["current_hash"], expected_sig):
+                    return False
+        except (KeyError, TypeError, ValueError):
+            return False
         return True
 
     def get_trail(self) -> List[Dict[str, Any]]:
-        return self.logs
+        return deepcopy(self.logs)
 
 
 GLOBAL_AUDIT = AuditTrail()

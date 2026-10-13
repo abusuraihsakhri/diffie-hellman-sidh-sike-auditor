@@ -93,7 +93,9 @@ class IsogenySecurityCoordinator:
             "critical_count": crit_count,
             "warning_count": warn_count,
             "alerts": [a.to_dict() for a in all_alerts],
-            "standard_specification": "Supersingular Isogeny Cryptography",
+            "standard_specification": "Non-standard project thresholds",
+            "cryptographic_assurance": "NOT_ASSESSED",
+            "security_notice": "SIDH/SIKE are insecure; these numeric checks cannot verify cryptographic security.",
             "consensus_summary": f"Consensus evaluation completed across 3 sub-agents with status [{status.value}].",
         }
 
