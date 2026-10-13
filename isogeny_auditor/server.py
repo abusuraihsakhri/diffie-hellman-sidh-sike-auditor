@@ -15,7 +15,7 @@ def create_app():
 
         app = FastAPI(
             title="Isogeny Cryptanalysis & SIDH/SIKE Vulnerability Auditor Agent",
-            description="Audits supersingular elliptic curve isogeny paths, evaluates Castryck-Decru torsion point attacks, and verifies quantum-resistant isogeny replacements (SQISign).",
+            description="Illustrative numerical threshold evaluation only. Does not implement SIDH/SIKE attacks or SQISign verification.",
             version="2.0.0-FRONTIER",
         )
 

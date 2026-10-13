@@ -1,13 +1,11 @@
-version: '3.8'
-
 services:
   diffie-hellman-sidh-sike-auditor:
     build: .
     container_name: diffie-hellman-sidh-sike-auditor
     ports:
-      - "8000:8000"
+      - "127.0.0.1:${AUDITOR_PORT:-8000}:8000"
     environment:
-      - AUDIT_SECRET_KEY=diffie-hellman-sidh-sike-auditor-prod-audit-key-2026
+      - AUDIT_SECRET_KEY=${AUDIT_SECRET_KEY:?Set a new random AUDIT_SECRET_KEY in your environment}
       - MODEL_PROVIDER=mock
     restart: unless-stopped
     healthcheck:
